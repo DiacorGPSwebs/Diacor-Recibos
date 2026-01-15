@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diacor GPS - Descarga tu Recibo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0096c8 0%, #00d4ff 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .logo {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 20px;
+        }
+
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        h1 {
+            color: #0096c8;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            text-align: left;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #0096c8;
+            box-shadow: 0 0 0 3px rgba(0, 150, 200, 0.1);
+        }
+
+        button {
+            background: linear-gradient(135deg, #dc3232 0%, #ff5050 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(220, 50, 50, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0096c8;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            color: #999;
+            font-size: 12px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <img src="https://storage.googleapis.com/msgsndr/URfFpkQx2eozCi574aHz/media/695d84c26c1415e06b6b388d.png" alt="Diacor GPS">
+        </div>
+        
+        <h1>DIACOR GPS</h1>
+        <p class="subtitle">Descarga tu recibo</p>
+
+        <div class="input-group">
+            <label for="clientId">Código de Cliente</label>
+            <input 
+                type="text" 
+                id="clientId" 
+                placeholder="Ingresa tu código de 6 dígitos"
+                maxlength="6"
+                pattern="[0-9]*"
+            >
+        </div>
+
+        <button onclick="descargarRecibo()">
+            📄 Descargar Recibo
+        </button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px; color: #666;">Generando tu recibo...</p>
+        </div>
+
+        <div class="error" id="error">
+            ⚠️ Código de cliente no encontrado. Verifica e intenta nuevamente.
+        </div>
+
+        <div class="footer">
+            Plaza las Pirámides Local 1<br>
+            Tel: 6471-2589 | RUC: 2216867-1-775831 DV1
+        </div>
+    </div>
+
+    <script>
+        // Auto-rellenar si viene el ID en la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const clientIdFromUrl = urlParams.get('id');
+        if (clientIdFromUrl) {
+            document.getElementById('clientId').value = clientIdFromUrl;
+        }
+
+        // Solo permitir números
+        document.getElementById('clientId').addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+
+        async function descargarRecibo() {
+            const clientId = document.getElementById('clientId').value.trim();
+            const errorDiv = document.getElementById('error');
+            const loadingDiv = document.getElementById('loading');
+            
+            // Ocultar errores previos
+            errorDiv.style.display = 'none';
+            
+            // Validar
+            if (!clientId || clientId.length !== 6) {
+                errorDiv.textContent = '⚠️ Por favor ingresa un código válido de 6 dígitos';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            // Mostrar loading
+            loadingDiv.style.display = 'block';
+
+            try {
+                // Llamar a la API para generar el PDF
+                const response = await fetch(`/api/generar-factura?client_id=${clientId}`);
+                
+                if (!response.ok) {
+                    throw new Error('Cliente no encontrado');
+                }
+
+                // Descargar el PDF
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Recibo_Diacor_${clientId}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                loadingDiv.style.display = 'none';
+                
+            } catch (error) {
+                loadingDiv.style.display = 'none';
+                errorDiv.textContent = '⚠️ Código de cliente no encontrado. Verifica e intenta nuevamente.';
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        // Permitir Enter para descargar
+        document.getElementById('clientId').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                descargarRecibo();
+            }
+        });
+    </script>
+</body>
+</html>
